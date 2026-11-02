@@ -1,0 +1,802 @@
+<!doctype html>
+<html lang="ja">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>親指シフト練習</title>
+<style>
+:root {
+  --bg: #f6f5f1;
+  --panel: #ffffff;
+  --text: #24231f;
+  --muted: #8a877d;
+  --faint: #d9d6cc;
+  --line: #e6e3da;
+  --accent: #2f6fdb;
+  --accent-soft: #dce8fb;
+  --ok: #2f9e5b;
+  --bad: #d64545;
+  --bad-soft: #fbe1e1;
+  --thumb: #e9a23b;
+  --thumb-soft: #fbedd6;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --bg: #1b1b1d;
+    --panel: #252528;
+    --text: #ecebe6;
+    --muted: #9a988f;
+    --faint: #4a4944;
+    --line: #36363a;
+    --accent: #6ea0f5;
+    --accent-soft: #24375a;
+    --ok: #5cc285;
+    --bad: #f07070;
+    --bad-soft: #4a2626;
+    --thumb: #f0b45a;
+    --thumb-soft: #4a3a20;
+  }
+}
+:root[data-theme="dark"] {
+  --bg: #1b1b1d;
+  --panel: #252528;
+  --text: #ecebe6;
+  --muted: #9a988f;
+  --faint: #4a4944;
+  --line: #36363a;
+  --accent: #6ea0f5;
+  --accent-soft: #24375a;
+  --ok: #5cc285;
+  --bad: #f07070;
+  --bad-soft: #4a2626;
+  --thumb: #f0b45a;
+  --thumb-soft: #4a3a20;
+}
+* { box-sizing: border-box; }
+html, body { margin: 0; }
+body {
+  background: var(--bg);
+  color: var(--text);
+  font-family: "Hiragino Sans", "Yu Gothic UI", "Meiryo", system-ui, sans-serif;
+  line-height: 1.5;
+}
+main { max-width: 860px; margin: 0 auto; padding: 24px 16px 48px; }
+[hidden] { display: none !important; }
+button {
+  font: inherit; color: inherit; cursor: pointer;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 8px;
+  padding: 6px 12px;
+}
+button:hover { border-color: var(--accent); }
+button.primary { background: var(--accent); border-color: var(--accent); color: #fff; }
+h1 { font-size: 22px; margin: 0 0 4px; }
+.sub { color: var(--muted); font-size: 14px; margin: 0; }
+
+/* メニュー */
+.next {
+  display: block; width: 100%; text-align: left; margin: 20px 0 28px;
+  padding: 18px 20px; border-radius: 12px; font-size: 18px;
+}
+.next small { display: block; font-size: 13px; opacity: .85; }
+.stages { display: flex; flex-direction: column; gap: 8px; }
+.stage {
+  display: grid; grid-template-columns: 2em 1fr auto; align-items: center; gap: 12px;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 10px; padding: 10px 14px;
+}
+.stage .no { color: var(--muted); font-variant-numeric: tabular-nums; text-align: right; }
+.stage .name { font-weight: 600; }
+.stage .kana { color: var(--muted); font-size: 13px; letter-spacing: .1em; }
+.stage .btns { display: flex; gap: 6px; }
+.stage .btns button { min-width: 84px; font-size: 14px; }
+.stage .btns button.done { border-color: var(--ok); }
+.stage .btns button .mark { color: var(--ok); }
+.settings { margin-top: 28px; display: flex; gap: 20px; flex-wrap: wrap; font-size: 14px; color: var(--muted); }
+.settings select { font: inherit; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 6px; padding: 2px 6px; }
+.help { margin-top: 16px; font-size: 13px; color: var(--muted); }
+
+/* 練習 */
+.bar { display: flex; justify-content: space-between; align-items: center; color: var(--muted); font-size: 14px; }
+.stagebox { text-align: center; padding: 36px 0 20px; min-height: 190px; }
+.disp { font-size: 34px; font-weight: 600; min-height: 1.5em; word-break: break-all; }
+.yomi { font-size: 26px; letter-spacing: .06em; margin-top: 8px; word-break: break-all; }
+.yomi span.done { color: var(--faint); }
+.yomi span.cur { border-bottom: 3px solid var(--accent); }
+.yomi span.cur.err { color: var(--bad); border-color: var(--bad); background: var(--bad-soft); }
+.yomi.big { font-size: 40px; letter-spacing: .2em; }
+.hintline { min-height: 1.6em; color: var(--muted); font-size: 15px; margin-top: 14px; }
+.hintline b { color: var(--text); }
+.wrongline { min-height: 1.5em; color: var(--bad); font-size: 15px; margin-top: 6px; }
+.warn {
+  margin: 8px auto 0; max-width: 560px; padding: 8px 12px; border-radius: 8px;
+  background: var(--thumb-soft); color: var(--text); font-size: 14px; text-align: center;
+}
+
+/* キーボード図 */
+.kb { --k: min(58px, 8.2vw); display: flex; flex-direction: column; align-items: center; gap: 4px; margin-top: 8px; user-select: none; }
+.row { display: flex; gap: 4px; }
+.row.r1 { margin-left: calc(var(--k) * -0.5); }
+.row.r2 { margin-left: calc(var(--k) * -0.2); }
+.row.r3 { margin-left: calc(var(--k) * 0.3); }
+.key {
+  position: relative; width: var(--k); height: var(--k);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 7px;
+  font-size: calc(var(--k) * 0.26);
+}
+.key span { position: absolute; line-height: 1; }
+.key .l { top: 12%; left: 12%; }
+.key .r { top: 12%; right: 12%; }
+.key .s { bottom: 12%; left: 50%; transform: translateX(-50%); font-size: calc(var(--k) * 0.36); }
+.key span.unl { color: var(--faint); }
+.key.home::after {
+  content: ""; position: absolute; bottom: 5%; left: 50%; width: 22%; height: 2px;
+  transform: translateX(-50%); background: var(--muted); border-radius: 1px;
+}
+.key.target { border-color: var(--accent); background: var(--accent-soft); }
+.key span.hit { color: var(--accent); font-weight: 700; }
+.thumbs { display: flex; gap: calc(var(--k) * 0.6); margin-top: 6px; }
+.thumb {
+  width: calc(var(--k) * 2.2); height: calc(var(--k) * 0.7); display: flex; align-items: center; justify-content: center;
+  background: var(--panel); border: 1px solid var(--line); border-radius: 7px; font-size: 13px; color: var(--muted);
+}
+.thumb.target { border-color: var(--thumb); background: var(--thumb-soft); color: var(--text); font-weight: 600; }
+
+/* 結果 */
+.result { text-align: center; padding-top: 40px; }
+.stats { display: flex; justify-content: center; gap: 40px; margin: 28px 0; flex-wrap: wrap; }
+.stat .v { font-size: 40px; font-weight: 700; font-variant-numeric: tabular-nums; }
+.stat .u { font-size: 14px; color: var(--muted); }
+.best { color: var(--ok); font-size: 14px; min-height: 1.5em; }
+.weak { color: var(--muted); font-size: 15px; min-height: 1.5em; }
+.weak b { color: var(--bad); font-size: 20px; margin: 0 4px; }
+.chart { position: relative; max-width: 520px; margin: 24px auto 0; text-align: left; }
+.chart .ttl { font-size: 13px; color: var(--muted); margin-bottom: 4px; }
+.chart svg { display: block; width: 100%; height: auto; overflow: visible; }
+.chart .grid { stroke: var(--line); stroke-width: 1; }
+.chart .axis { fill: var(--muted); font-size: 11px; }
+.chart .line { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linejoin: round; stroke-linecap: round; }
+.chart .dot { fill: var(--accent); stroke: var(--bg); stroke-width: 2; }
+.chart .hit { fill: transparent; }
+.chart .tip {
+  position: absolute; pointer-events: none; transform: translate(-50%, -100%);
+  background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
+  padding: 4px 8px; font-size: 12px; white-space: nowrap; color: var(--text);
+}
+button:disabled { opacity: .45; cursor: default; }
+button:disabled:hover { border-color: var(--line); }
+.actions { display: flex; justify-content: center; gap: 10px; margin-top: 28px; flex-wrap: wrap; }
+.actions button { min-width: 110px; padding: 10px 16px; }
+.keys { color: var(--muted); font-size: 12px; margin-top: 10px; }
+</style>
+</head>
+<body>
+<main>
+
+<section id="menu">
+  <h1>親指シフト練習</h1>
+  <p class="sub">中段 → 上段 → 下段 → シフト → 濁点 の順に，少しずつ覚えていきます．</p>
+  <button class="next primary" id="nextBtn"></button>
+  <div class="stages" id="stages"></div>
+  <div class="settings">
+    <label>キーの案内
+      <select id="setHint">
+        <option value="always">いつも表示</option>
+        <option value="miss">ミスしたときだけ</option>
+        <option value="none">表示しない</option>
+      </select>
+    </label>
+    <label>句読点
+      <select id="setPunct">
+        <option value="ja">、。</option>
+        <option value="sci">，．</option>
+      </select>
+    </label>
+    <label>音
+      <select id="setSound">
+        <option value="on">オン</option>
+        <option value="off">オフ</option>
+      </select>
+    </label>
+    <label>表示
+      <select id="setTheme">
+        <option value="auto">OS に合わせる</option>
+        <option value="light">ライト</option>
+        <option value="dark">ダーク</option>
+      </select>
+    </label>
+  </div>
+  <p class="help">かなキーで親指シフトをオンにしてから始めてください．Enter で開始，練習中は Esc でメニューに戻ります．</p>
+</section>
+
+<section id="play" hidden>
+  <div class="bar"><span id="playTitle"></span><span id="playProg"></span></div>
+  <div class="stagebox">
+    <div class="disp" id="disp"></div>
+    <div class="yomi" id="yomi"></div>
+    <div class="wrongline" id="wrongline"></div>
+    <div class="hintline" id="hintline"></div>
+    <div class="warn" id="warn" hidden></div>
+  </div>
+  <div class="kb" id="kb"></div>
+</section>
+
+<section id="result" hidden>
+  <div class="result">
+    <p class="sub" id="resTitle"></p>
+    <div class="stats">
+      <div class="stat"><div class="v" id="resKpm"></div><div class="u">打/分</div></div>
+      <div class="stat"><div class="v" id="resAcc"></div><div class="u">正確さ</div></div>
+      <div class="stat"><div class="v" id="resTime"></div><div class="u">時間</div></div>
+    </div>
+    <div class="best" id="resBest"></div>
+    <div class="weak" id="resWeak"></div>
+    <div class="chart" id="resChart" hidden></div>
+    <div class="actions">
+      <button id="againBtn">もう一度</button>
+      <button class="primary" id="resNextBtn">次へ</button>
+      <button id="menuBtn">メニュー</button>
+    </div>
+    <p class="keys">は: もう一度　Enter: 次へ　Esc: メニュー</p>
+  </div>
+</section>
+
+</main>
+<script src="words.js"></script>
+<script>
+"use strict";
+
+/* ---------- just68 の NICOLA 配列 ----------
+ * [キー位置, 単独, 左親指, 右親指]．users/nicola/nicola.c の ng_table と同じ並び．
+ * キー位置は QWERTY 配列での位置 (図には表示しない)．
+ */
+const LAYOUT = [
+  [["q","。","ぁ",""],["w","か","え","が"],["e","た","り","だ"],["r","こ","ゃ","ご"],["t","さ","れ","ざ"],
+   ["y","ら","ぱ","よ"],["u","ち","ぢ","に"],["i","く","ぐ","る"],["o","つ","づ","ま"],["p","，","ぴ","ぇ"],["[","、","」","「"]],
+  [["a","う","を","ゔ"],["s","し","あ","じ"],["d","て","な","で"],["f","け","ゅ","げ"],["g","せ","も","ぜ"],
+   ["h","は","ば","み"],["j","と","ど","お"],["k","き","ぎ","の"],["l","い","ぽ","ょ"],[";","ん","","っ"],["'","BS","BS",""]],
+  [["z","．","ぅ",""],["x","ひ","ー","び"],["c","す","ろ","ず"],["v","ふ","や","ぶ"],["b","へ","ぃ","べ"],
+   ["n","め","ぷ","ぬ"],["m","そ","ぞ","ゆ"],[",","ね","ぺ","む"],[".","ほ","ぼ","わ"],["/","・","？","ぉ"]],
+];
+const FINGER = {
+  q:"左手 小指", a:"左手 小指", z:"左手 小指", w:"左手 薬指", s:"左手 薬指", x:"左手 薬指",
+  e:"左手 中指", d:"左手 中指", c:"左手 中指", r:"左手 人差し指", f:"左手 人差し指", v:"左手 人差し指",
+  t:"左手 人差し指", g:"左手 人差し指", b:"左手 人差し指", y:"右手 人差し指", h:"右手 人差し指", n:"右手 人差し指",
+  u:"右手 人差し指", j:"右手 人差し指", m:"右手 人差し指", i:"右手 中指", k:"右手 中指", ",":"右手 中指",
+  o:"右手 薬指", l:"右手 薬指", ".":"右手 薬指", p:"右手 小指", ";":"右手 小指", "/":"右手 小指",
+  "[":"右手 小指", "'":"右手 小指",
+};
+const ROW_NAME = ["上段", "中段", "下段"];
+
+// かな -> 打ち方 {key, row, shift: 0=単独 1=左親指 2=右親指}
+const KANA_POS = {};
+LAYOUT.forEach((row, r) => row.forEach(([key, ...chars]) => chars.forEach((ch, shift) => {
+  if (ch && ch !== "BS" && !KANA_POS[ch]) KANA_POS[ch] = { key, row: r, shift };
+})));
+
+/* just68 が送るローマ字 -> かな (nicola.c の ng_table の逆引き) */
+const ROMAJI = {
+  a:"あ", i:"い", u:"う", e:"え", o:"お", ka:"か", ki:"き", ku:"く", ke:"け", ko:"こ",
+  sa:"さ", si:"し", su:"す", se:"せ", so:"そ", ta:"た", ti:"ち", tu:"つ", te:"て", to:"と",
+  na:"な", ni:"に", nu:"ぬ", ne:"ね", no:"の", ha:"は", hi:"ひ", hu:"ふ", he:"へ", ho:"ほ",
+  ma:"ま", mi:"み", mu:"む", me:"め", mo:"も", ya:"や", yu:"ゆ", yo:"よ",
+  ra:"ら", ri:"り", ru:"る", re:"れ", ro:"ろ", wa:"わ", wo:"を", nn:"ん",
+  ga:"が", gi:"ぎ", gu:"ぐ", ge:"げ", go:"ご", za:"ざ", zi:"じ", zu:"ず", ze:"ぜ", zo:"ぞ",
+  da:"だ", di:"ぢ", du:"づ", de:"で", do:"ど", ba:"ば", bi:"び", bu:"ぶ", be:"べ", bo:"ぼ",
+  pa:"ぱ", pi:"ぴ", pu:"ぷ", pe:"ぺ", po:"ぽ", vu:"ゔ",
+  xa:"ぁ", xi:"ぃ", xu:"ぅ", xe:"ぇ", xo:"ぉ", xya:"ゃ", xyu:"ゅ", xyo:"ょ", xtu:"っ",
+  ".":"。", ",":"、", "-":"ー", "/":"・", "?":"？", "[":"「", "]":"」", "~":"～",
+};
+// 英数モード (Ctrl+F11 ～ Ctrl+F12) で送られる記号
+const ROMAJI_ALNUM = { ",":"，", ".":"．", "[":"［", "]":"］" };
+const ROMAJI_PREFIX = new Set();
+for (const code of Object.keys(ROMAJI)) {
+  for (let i = 1; i < code.length; i++) ROMAJI_PREFIX.add(code.slice(0, i));
+}
+// 同じものとして扱う句読点 (英数モードのキーが届かない環境のため)
+const SAME = { "、":"，", "，":"、", "。":"．", "．":"。" };
+
+/* ---------- ステージ ---------- */
+const STAGES = [
+  { name:"中段",           note:"親指なし",           kana:"うしてけせはときいん" },
+  { name:"上段",           note:"親指なし",           kana:"かたこさらちくつ" },
+  { name:"下段",           note:"親指なし",           kana:"ひすふへめそねほ" },
+  { name:"中段シフト",     note:"同じ側の親指",       kana:"をあなゅもみおのょっ" },
+  { name:"上段シフト",     note:"同じ側の親指",       kana:"ぁえりゃれよにるまぇ" },
+  { name:"下段シフト",     note:"同じ側の親指",       kana:"ぅーろやぃぬゆむわぉ" },
+  { name:"濁点 (左手)",    note:"右親指",             kana:"がだござゔじでげぜびずぶべ" },
+  { name:"濁点・半濁点 (右手)", note:"左親指",        kana:"ぱぢぐづぴばどぎぽぷぞぺぼ" },
+];
+const KANA_STAGE = {};
+STAGES.forEach((s, i) => { for (const ch of s.kana) KANA_STAGE[ch] = i + 1; });
+for (const ch of "、。，．") KANA_STAGE[ch] = 2;
+KANA_STAGE["・"] = 3;
+for (const ch of "「」？") KANA_STAGE[ch] = 8;
+
+const MODES = [];
+STAGES.forEach((s, i) => {
+  MODES.push({ id:`s${i+1}-key`,  stage:i+1, kind:"key",  label:`${i+1}. ${s.name}：キー練習` });
+  MODES.push({ id:`s${i+1}-word`, stage:i+1, kind:"word", label:`${i+1}. ${s.name}：単語練習` });
+});
+MODES.push({ id:"all-word", stage:8, kind:"word", label:"総合：単語" });
+MODES.push({ id:"all-sent", stage:8, kind:"sent", label:"総合：文章" });
+// 復習用 (「つづきから」の対象にしない)
+MODES.push({ id:"weak",  stage:8, kind:"weak",  label:"復習：苦手なかな", extra:true });
+MODES.push({ id:"timed", stage:1, kind:"timed", label:"復習：1分間", extra:true });
+const modeById = id => MODES.find(m => m.id === id);
+
+const WORD_LIST = (typeof WORDS !== "undefined" ? WORDS : []).map(([disp, yomi]) => ({ disp, yomi }));
+const SENT_LIST = (typeof SENTENCES !== "undefined" ? SENTENCES : []).map(([disp, yomi]) => ({ disp, yomi }));
+function stageOfText(text) {
+  let s = 0;
+  for (const ch of text) s = Math.max(s, KANA_STAGE[ch] || 99);
+  return s;
+}
+WORD_LIST.forEach(w => { w.stage = stageOfText(w.yomi); });
+
+/* ---------- 保存 ---------- */
+const STORE_KEY = "nicolaTyping.v1";
+let store = { best:{}, miss:{}, hist:{}, settings:{ hint:"always", punct:"ja", theme:"auto", sound:"on" } };
+try {
+  const saved = JSON.parse(localStorage.getItem(STORE_KEY) || "null");
+  if (saved) store = { ...store, ...saved, settings:{ ...store.settings, ...(saved.settings || {}) } };
+} catch (e) { /* 保存なしでも動く */ }
+function save() {
+  try { localStorage.setItem(STORE_KEY, JSON.stringify(store)); } catch (e) { /* 無視 */ }
+}
+const isCleared = id => !!(store.best[id] && store.best[id].cleared);
+function recommended() {
+  return MODES.find(m => !m.extra && !isCleared(m.id)) || modeById("all-sent");
+}
+// クリアした段のうち最も先の段 (1分間モードの出題範囲)
+function progressStage() {
+  let st = 1;
+  for (const m of MODES) if (!m.extra && isCleared(m.id)) st = Math.max(st, m.stage);
+  return st;
+}
+// 苦手なかな (まちがえた回数が多い順)
+function weakKana() {
+  return Object.entries(store.miss).filter(([ch, n]) => n >= 1 && KANA_POS[ch])
+    .sort((a, b) => b[1] - a[1]).slice(0, 8).map(([ch]) => ch);
+}
+
+/* ---------- 出題 ---------- */
+const shuffle = a => { for (let i = a.length - 1; i > 0; i--) { const j = Math.random() * (i + 1) | 0; [a[i], a[j]] = [a[j], a[i]]; } return a; };
+const punctText = t => store.settings.punct === "sci" ? t.replace(/、/g, "，").replace(/。/g, "．") : t;
+
+function weightedPick(chars) {
+  const w = chars.map(ch => 1 + Math.min(store.miss[ch] || 0, 10) * 0.3);
+  let r = Math.random() * w.reduce((a, b) => a + b, 0);
+  for (let i = 0; i < chars.length; i++) { r -= w[i]; if (r <= 0) return chars[i]; }
+  return chars[chars.length - 1];
+}
+
+function makeKeyItems(stage) {
+  const fresh = [...STAGES[stage - 1].kana];
+  if (stage === 2) fresh.push(...(store.settings.punct === "sci" ? "，．" : "、。"));
+  // 最初と最後はキーの並び順 (左から右) に打つ
+  const ordered = { disp:"", yomi:STAGES[stage - 1].kana };
+  const items = [ordered];
+  for (let n = 0; n < 13; n++) {
+    let s = "";
+    while (s.length < 4) {
+      const ch = weightedPick(fresh);
+      if (s.endsWith(ch + ch) || (s.length === 0 && /[ぁぃぅぇぉゃゅょっんー、。，．]/.test(ch))) continue;
+      s += ch;
+    }
+    items.push({ disp:"", yomi:s });
+  }
+  items.push(ordered);
+  return items;
+}
+
+function makeWordItems(stage, all) {
+  const n = 15;
+  if (all) return shuffle(WORD_LIST.filter(w => w.stage <= 8)).slice(0, 20);
+  const fresh = shuffle(WORD_LIST.filter(w => w.stage === stage));
+  const old = shuffle(WORD_LIST.filter(w => w.stage < stage));
+  const take = fresh.splice(0, Math.ceil(n * 0.7));
+  take.push(...old.splice(0, n - take.length));
+  take.push(...fresh.splice(0, n - take.length));
+  return shuffle(take);
+}
+
+function makeItems(mode) {
+  if (mode.kind === "key") return makeKeyItems(mode.stage);
+  if (mode.kind === "weak") {
+    const chars = weakKana();
+    return Array.from({ length:15 }, () => {
+      let s = "";
+      while (s.length < 4) s += weightedPick(chars);
+      return { disp:"", yomi:s };
+    });
+  }
+  if (mode.kind === "timed") return shuffle(WORD_LIST.filter(w => w.stage <= mode.stage));
+  if (mode.kind === "sent") {
+    return shuffle(SENT_LIST.slice()).slice(0, 5).map(s => ({ disp:punctText(s.disp), yomi:punctText(s.yomi) }));
+  }
+  const items = makeWordItems(mode.stage, mode.id === "all-word");
+  return items.length ? items : makeKeyItems(mode.stage);
+}
+
+/* ---------- 画面 ---------- */
+const $ = id => document.getElementById(id);
+let screen = "menu";
+function show(name) {
+  screen = name;
+  for (const s of ["menu", "play", "result"]) $(s).hidden = s !== name;
+}
+
+function renderMenu() {
+  const rec = recommended();
+  $("nextBtn").innerHTML = `<small>つづきから (Enter)</small>${rec.label}`;
+  $("nextBtn").onclick = () => start(rec);
+  const box = $("stages");
+  box.innerHTML = "";
+  const rows = STAGES.map((s, i) => ({ no:i + 1, name:s.name, kana:`${s.note}　${s.kana}`, ids:[`s${i+1}-key`, `s${i+1}-word`], labels:["キー", "単語"] }));
+  rows.push({ no:"", name:"総合", kana:"すべてのかな", ids:["all-word", "all-sent"], labels:["単語", "文章"] });
+  const weak = weakKana();
+  rows.push({ no:"", name:"復習", kana:weak.length ? `苦手なかな　${weak.join("")}` : "苦手なかなと，1分間の単語練習",
+              ids:["weak", "timed"], labels:["苦手", "1分間"] });
+  for (const r of rows) {
+    const el = document.createElement("div");
+    el.className = "stage";
+    el.innerHTML = `<span class="no">${r.no}</span><span><span class="name">${r.name}</span><br><span class="kana">${r.kana}</span></span><span class="btns"></span>`;
+    r.ids.forEach((id, k) => {
+      const b = document.createElement("button");
+      const best = store.best[id];
+      b.innerHTML = `${r.labels[k]}${best ? ` <span class="mark">${best.cleared ? "✓" : ""}${best.kpm}</span>` : ""}`;
+      if (best && best.cleared) b.classList.add("done");
+      b.title = best ? `最高 ${best.kpm} 打/分，正確さ ${best.acc}%` : "未挑戦";
+      b.onclick = () => start(modeById(id));
+      if (id === "weak" && weak.length < 3) {
+        b.disabled = true;
+        b.title = "まちがえたかなが 3 つ以上たまると練習できます";
+      }
+      el.querySelector(".btns").appendChild(b);
+    });
+    box.appendChild(el);
+  }
+  $("setHint").value = store.settings.hint;
+  $("setPunct").value = store.settings.punct;
+  $("setTheme").value = store.settings.theme;
+  $("setSound").value = store.settings.sound;
+  stopTimer();
+  show("menu");
+}
+$("setHint").onchange = e => { store.settings.hint = e.target.value; save(); };
+$("setPunct").onchange = e => { store.settings.punct = e.target.value; save(); };
+$("setSound").onchange = e => { store.settings.sound = e.target.value; save(); };
+$("setTheme").onchange = e => { store.settings.theme = e.target.value; save(); applyTheme(); };
+function applyTheme() {
+  const t = store.settings.theme;
+  if (t === "auto") document.documentElement.removeAttribute("data-theme");
+  else document.documentElement.setAttribute("data-theme", t);
+}
+applyTheme();
+
+// キーボード図
+const keyEls = {};
+(function buildKeyboard() {
+  const kb = $("kb");
+  LAYOUT.forEach((row, r) => {
+    const rowEl = document.createElement("div");
+    rowEl.className = `row r${r + 1}`;
+    for (const [key, s, l, rr] of row) {
+      const k = document.createElement("div");
+      k.className = "key" + (key === "f" || key === "j" ? " home" : "");
+      k.innerHTML = `<span class="l"></span><span class="r"></span><span class="s"></span>`;
+      const [lEl, rEl, sEl] = k.children;
+      sEl.textContent = s === "BS" ? "⌫" : s;
+      lEl.textContent = l === "BS" ? "" : l;
+      rEl.textContent = rr;
+      keyEls[key] = { el:k, slots:[sEl, lEl, rEl], chars:[s, l, rr] };
+      rowEl.appendChild(k);
+    }
+    kb.appendChild(rowEl);
+  });
+  const th = document.createElement("div");
+  th.className = "thumbs";
+  th.innerHTML = `<div class="thumb" id="thumbL">左親指</div><div class="thumb" id="thumbR">右親指</div>`;
+  kb.appendChild(th);
+})();
+
+function renderKeyboard(stage, target) {
+  for (const { el, slots, chars } of Object.values(keyEls)) {
+    el.classList.remove("target");
+    slots.forEach((sl, i) => {
+      sl.classList.remove("hit");
+      const st = KANA_STAGE[chars[i]];
+      sl.classList.toggle("unl", !!st && st > stage);
+    });
+  }
+  $("thumbL").classList.remove("target");
+  $("thumbR").classList.remove("target");
+  const pos = target && KANA_POS[target];
+  if (!pos) { $("hintline").textContent = ""; return; }
+  const k = keyEls[pos.key];
+  k.el.classList.add("target");
+  k.slots[pos.shift].classList.add("hit");
+  if (pos.shift) $(pos.shift === 1 ? "thumbL" : "thumbR").classList.add("target");
+  const thumb = ["", "＋ 左親指", "＋ 右親指"][pos.shift];
+  $("hintline").innerHTML = `<b>${target}</b>　${FINGER[pos.key]}（${ROW_NAME[pos.row]}）${thumb}`;
+}
+
+/* ---------- 音 ---------- */
+let audio = null;
+function beep(kind) {
+  if (store.settings.sound !== "on") return;
+  try {
+    audio = audio || new AudioContext();
+    const t = audio.currentTime;
+    const osc = audio.createOscillator();
+    const gain = audio.createGain();
+    const ok = kind === "ok";
+    osc.type = ok ? "sine" : "square";
+    osc.frequency.value = ok ? 1100 : 160;
+    const len = ok ? 0.035 : 0.14;
+    gain.gain.setValueAtTime(ok ? 0.08 : 0.06, t);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + len);
+    osc.connect(gain).connect(audio.destination);
+    osc.start(t);
+    osc.stop(t + len);
+  } catch (e) { /* 音が出せない環境では無視 */ }
+}
+
+/* ---------- 練習 ---------- */
+let S = null; // 練習中の状態
+
+const TIME_LIMIT = 60;
+let timer = 0;
+function stopTimer() { clearInterval(timer); timer = 0; }
+
+function start(mode) {
+  stopTimer();
+  if (mode.kind === "timed") {
+    mode.stage = progressStage();
+    mode.label = `復習：1分間 (${STAGES[mode.stage - 1].name}までの単語)`;
+  }
+  S = {
+    mode, items:makeItems(mode), idx:0, pos:0,
+    t0:0, strokes:0, misses:0, missMap:{}, confuse:{}, wrong:"", missedHere:false, badRun:0,
+  };
+  input.reset();
+  if (document.activeElement) document.activeElement.blur();
+  $("warn").hidden = true;
+  $("playTitle").textContent = mode.label;
+  show("play");
+  renderPlay();
+}
+
+function renderProgress() {
+  if (S.mode.kind === "timed") {
+    const left = S.t0 ? Math.max(0, Math.ceil(TIME_LIMIT - (performance.now() - S.t0) / 1000)) : TIME_LIMIT;
+    $("playProg").textContent = `残り ${left} 秒`;
+  } else {
+    $("playProg").textContent = `${S.idx + 1} / ${S.items.length}`;
+  }
+}
+
+function renderPlay() {
+  const item = S.items[S.idx];
+  renderProgress();
+  $("wrongline").textContent = S.wrong ? `「${S.wrong}」を打ちました` : "";
+  $("disp").textContent = item.disp;
+  const yomi = $("yomi");
+  yomi.className = "yomi" + (item.disp ? "" : " big");
+  yomi.innerHTML = "";
+  [...item.yomi].forEach((ch, i) => {
+    const sp = document.createElement("span");
+    sp.textContent = ch;
+    if (i < S.pos) sp.className = "done";
+    if (i === S.pos) sp.className = "cur" + (S.missedHere ? " err" : "");
+    yomi.appendChild(sp);
+  });
+  const hint = store.settings.hint;
+  const showHint = hint === "always" || (hint === "miss" && S.missedHere);
+  renderKeyboard(S.mode.stage, showHint ? [...item.yomi][S.pos] : null);
+}
+
+function onKana(ch) {
+  if (!S.t0) {
+    S.t0 = performance.now();
+    if (S.mode.kind === "timed") {
+      timer = setInterval(() => {
+        renderProgress();
+        if (performance.now() - S.t0 >= TIME_LIMIT * 1000) finish();
+      }, 200);
+    }
+  }
+  S.badRun = 0;
+  $("warn").hidden = true;
+  const target = [...S.items[S.idx].yomi][S.pos];
+  if (ch === target || SAME[ch] === target) {
+    S.strokes++;
+    S.pos++;
+    S.missedHere = false;
+    S.wrong = "";
+    beep("ok");
+    if (S.pos >= [...S.items[S.idx].yomi].length) {
+      S.idx++;
+      S.pos = 0;
+      if (S.idx >= S.items.length) return finish();
+    }
+  } else {
+    S.misses++;
+    S.missMap[target] = (S.missMap[target] || 0) + 1;
+    const pair = `${target}→${ch}`;
+    S.confuse[pair] = (S.confuse[pair] || 0) + 1;
+    S.missedHere = true;
+    S.wrong = ch;
+    beep("miss");
+  }
+  renderPlay();
+}
+
+function onInvalid() {
+  // 親指シフトがオフのとき (英字がそのまま届く) に気づけるようにする
+  if (++S.badRun >= 3) {
+    $("warn").textContent = "かなとして読めない入力が続いています．かなキーで親指シフトをオンにしてください．";
+    $("warn").hidden = false;
+  }
+}
+
+function finish() {
+  stopTimer();
+  input.reset();
+  const timed = S.mode.kind === "timed";
+  const sec = timed ? TIME_LIMIT : Math.max((performance.now() - S.t0) / 1000, 1);
+  const kpm = Math.round(S.strokes / sec * 60);
+  const acc = Math.round(S.strokes / Math.max(S.strokes + S.misses, 1) * 1000) / 10;
+  const id = S.mode.id;
+  const prev = store.best[id];
+  const cleared = !S.mode.extra && acc >= 90;
+  let bestMsg = "";
+  if (!prev || kpm > prev.kpm) {
+    store.best[id] = { kpm, acc, cleared:cleared || !!(prev && prev.cleared) };
+    if (prev) bestMsg = `自己ベスト更新 (前回 ${prev.kpm} 打/分)`;
+  } else if (cleared && !prev.cleared) {
+    prev.cleared = true;
+  }
+  if (!bestMsg) bestMsg = S.mode.extra ? "" : cleared ? "クリア (正確さ 90% 以上)" : "正確さ 90% 以上でクリアです";
+  const hist = store.hist[id] = store.hist[id] || [];
+  hist.push({ t:Date.now(), kpm, acc });
+  if (hist.length > 50) hist.splice(0, hist.length - 50);
+  for (const [ch, n] of Object.entries(S.missMap)) store.miss[ch] = (store.miss[ch] || 0) + n;
+  // 正しく打てたかなは苦手度を少し下げる
+  for (const item of S.items) for (const ch of item.yomi) {
+    if (store.miss[ch] && !S.missMap[ch]) store.miss[ch] = Math.max(0, store.miss[ch] - 0.2);
+  }
+  save();
+
+  $("resTitle").textContent = S.mode.label;
+  $("resKpm").textContent = kpm;
+  $("resAcc").textContent = acc + "%";
+  $("resTime").textContent = sec < 60 ? `${Math.round(sec)}秒` : `${Math.floor(sec / 60)}分${Math.round(sec % 60)}秒`;
+  $("resBest").textContent = bestMsg;
+  const pairs = Object.entries(S.confuse).sort((a, b) => b[1] - a[1]).slice(0, 3);
+  $("resWeak").innerHTML = pairs.length
+    ? `まちがえた組み合わせ（正→打）${pairs.map(([p, n]) => `<b>${p}</b>${n > 1 ? `×${n}` : ""}`).join("　")}`
+    : "ミスなし";
+  renderChart(hist);
+  show("result");
+  S.resultAt = performance.now();
+}
+
+// これまでの記録 (打/分) の折れ線
+function renderChart(hist) {
+  const box = $("resChart");
+  if (hist.length < 2) { box.hidden = true; return; }
+  box.hidden = false;
+  const W = 520, H = 150, L = 34, R = 10, T = 10, B = 22;
+  const maxV = Math.max(...hist.map(h => h.kpm));
+  const step = [10, 20, 50, 100, 200, 500].find(s => maxV / s <= 4) || 1000;
+  const top = Math.max(step, Math.ceil(maxV / step) * step);
+  const x = i => L + (W - L - R) * i / (hist.length - 1);
+  const y = v => T + (H - T - B) * (1 - v / top);
+  let svg = "";
+  for (let v = 0; v <= top; v += step) {
+    svg += `<line class="grid" x1="${L}" x2="${W - R}" y1="${y(v)}" y2="${y(v)}"/>`;
+    svg += `<text class="axis" x="${L - 6}" y="${y(v) + 4}" text-anchor="end">${v}</text>`;
+  }
+  svg += `<text class="axis" x="${L}" y="${H - 4}">${hist.length - 1} 回前</text>`;
+  svg += `<text class="axis" x="${W - R}" y="${H - 4}" text-anchor="end">今回</text>`;
+  svg += `<polyline class="line" points="${hist.map((h, i) => `${x(i)},${y(h.kpm)}`).join(" ")}"/>`;
+  hist.forEach((h, i) => {
+    svg += `<circle class="dot" cx="${x(i)}" cy="${y(h.kpm)}" r="${i === hist.length - 1 ? 5 : 4}"/>`;
+  });
+  const hw = (W - L - R) / (hist.length - 1);
+  hist.forEach((h, i) => {
+    svg += `<rect class="hit" data-i="${i}" x="${x(i) - hw / 2}" y="${T}" width="${hw}" height="${H - T - B}"/>`;
+  });
+  box.innerHTML = `<div class="ttl">これまでの記録（打/分）</div><svg viewBox="0 0 ${W} ${H}" role="img" aria-label="打/分の推移">${svg}</svg><div class="tip" hidden></div>`;
+  const tip = box.querySelector(".tip");
+  const svgEl = box.querySelector("svg");
+  box.querySelectorAll(".hit").forEach(r => {
+    r.addEventListener("mouseenter", () => {
+      const i = +r.dataset.i;
+      const h = hist[i];
+      const d = new Date(h.t);
+      tip.innerHTML = `${d.getMonth() + 1}/${d.getDate()} ${d.getHours()}:${String(d.getMinutes()).padStart(2, "0")}　<b>${h.kpm}</b> 打/分　${h.acc}%`;
+      const k = svgEl.clientWidth / W;
+      tip.style.left = `${x(i) * k}px`;
+      // グラフの上端に近い点はタイトルに重ならないように下側に出す
+      const py = y(h.kpm) * k + box.querySelector(".ttl").offsetHeight + 4;
+      const below = y(h.kpm) < (H - T - B) / 2;
+      tip.style.top = `${below ? py + 12 : py - 12}px`;
+      tip.style.transform = below ? "translate(-50%, 0)" : "translate(-50%, -100%)";
+      tip.hidden = false;
+    });
+    r.addEventListener("mouseleave", () => { tip.hidden = true; });
+  });
+}
+
+$("againBtn").onclick = () => start(S.mode);
+$("resNextBtn").onclick = () => start(recommended());
+$("menuBtn").onclick = renderMenu;
+
+/* ---------- 入力 ----------
+ * just68 は親指シフトの結果をローマ字 (US 配列の文字) で送る．
+ * ページ上の入力欄にはフォーカスしないので IME を通らずに keydown で受け取れる．
+ */
+const input = {
+  buf:"", alnum:false,
+  reset() { this.buf = ""; this.alnum = false; },
+  feed(c) {
+    if (this.alnum && ROMAJI_ALNUM[c]) { this.buf = ""; return gotKana(ROMAJI_ALNUM[c]); }
+    let b = this.buf + c;
+    if (!ROMAJI[b] && !ROMAJI_PREFIX.has(b) && this.buf) {
+      // 途中までの入力は捨てて，今の文字から読み直す
+      gotInvalid();
+      b = c;
+    }
+    this.buf = "";
+    if (ROMAJI[b]) gotKana(ROMAJI[b]);
+    else if (ROMAJI_PREFIX.has(b)) this.buf = b;
+    else gotInvalid();
+  },
+};
+function gotKana(ch) {
+  if (screen === "play") onKana(ch);
+  else if (screen === "result" && ch === "は") start(S.mode); // もう一度
+}
+function gotInvalid() {
+  if (screen === "play") onInvalid();
+}
+
+document.addEventListener("keydown", e => {
+  if (screen === "menu") {
+    if (e.key === "Enter" && !(e.target instanceof HTMLButtonElement) && !(e.target instanceof HTMLSelectElement)) {
+      e.preventDefault();
+      start(recommended());
+    }
+    return;
+  }
+  if (screen === "result") {
+    if (performance.now() - S.resultAt < 600) return; // 打ち終わりの勢いで押さないように
+    if (e.key === "Enter") { e.preventDefault(); start(recommended()); }
+    if (e.key === "Escape") renderMenu();
+    if (e.key.length === 1 && !e.ctrlKey && !e.altKey && !e.metaKey) {
+      e.preventDefault();
+      input.feed(e.key.toLowerCase());
+    }
+    return;
+  }
+  // 練習中
+  if (e.key === "Escape") { renderMenu(); return; }
+  if (e.key === "Process" || e.isComposing) {
+    $("warn").textContent = "日本語入力 (IME) を通った入力になっています．IME をオフ (英数) にしてください．";
+    $("warn").hidden = false;
+    return;
+  }
+  if (e.ctrlKey && e.key === "F11") { e.preventDefault(); input.alnum = true; return; }
+  if (e.ctrlKey && e.key === "F12") { e.preventDefault(); input.alnum = false; return; }
+  if (e.ctrlKey || e.altKey || e.metaKey) return;
+  if (e.key.length !== 1) return; // Shift, Backspace, F13/F14 など
+  e.preventDefault();
+  if (e.key === " ") return; // 親指キーだけを押したとき
+  input.feed(/[A-Z]/.test(e.key) ? e.key.toLowerCase() : e.key);
+});
+
+renderMenu();
+</script>
+</body>
+</html>
